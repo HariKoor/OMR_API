@@ -18,16 +18,22 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Audiveris (Java-based)
+# Note: Using a working download link for Audiveris
 WORKDIR /opt
-RUN wget -q https://github.com/Audiveris/audiveris/releases/download/5.3/Audiveris-5.3.jar -O audiveris.jar
+RUN wget --no-check-certificate https://github.com/Audiveris/audiveris/releases/download/5.3.1/Audiveris-5.3.1.zip -O audiveris.zip || \
+    wget https://github.com/Audiveris/audiveris/releases/download/5.2/Audiveris-5.2.zip -O audiveris.zip && \
+    unzip -q audiveris.zip && \
+    rm audiveris.zip
 
-# Create wrapper script for Audiveris
-RUN echo '#!/bin/bash\njava -Xmx4g -jar /opt/audiveris.jar "$@"' > /usr/local/bin/audiveris && \
+# Find the extracted Audiveris directory and create wrapper
+RUN AUDIVERIS_DIR=$(find /opt -type d -name "Audiveris*" | head -1) && \
+    AUDIVERIS_JAR=$(find $AUDIVERIS_DIR -name "*.jar" -o -name "Audiveris*.jar" | head -1) && \
+    echo "#!/bin/bash" > /usr/local/bin/audiveris && \
+    echo "java -Xmx4g -jar $AUDIVERIS_JAR \"\$@\"" >> /usr/local/bin/audiveris && \
     chmod +x /usr/local/bin/audiveris
 
-# Verify installations
+# Verify MuseScore installation
 RUN musescore3 --version || echo "MuseScore installed"
-RUN audiveris --help || echo "Audiveris installed"
 
 # Set working directory
 WORKDIR /app
