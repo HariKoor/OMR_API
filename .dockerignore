@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+sheet1.pdf
+sheet1.mxl
+sheet1_unzipped/
+
+# Git
+.git/
+.gitignore
+
+# Docs
+README.md
+ROADMAP.md
+CLAUDE.md
+
+# Local development
+.env
+*.log
