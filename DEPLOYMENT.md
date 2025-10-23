@@ -17,13 +17,15 @@ Cloud servers run **Linux**, not macOS, so we need Linux versions of these tools
 ## Solution: Docker Container
 
 We've created a Docker container that includes:
-- ✅ Ubuntu Linux base
+- ✅ Ubuntu 22.04 Linux base
 - ✅ Python 3
-- ✅ Audiveris (Java version)
+- ✅ Audiveris 5.7.1 (installed via official .deb package)
 - ✅ MuseScore 3 (Linux version)
 - ✅ Your FastAPI application
 
 The code now **auto-detects the OS** and uses the correct binary paths.
+
+**Note:** Audiveris is installed using the official Ubuntu 22.04 .deb package from the GitHub releases, which properly handles all dependencies and binary paths.
 
 ---
 
@@ -59,11 +61,13 @@ git push -u origin main
 7. Wait 5-10 minutes for build
 8. Get your URL: `https://your-app.up.railway.app`
 
-**Environment Variables** (if needed):
-- `AUDIVERIS_BIN=/usr/local/bin/audiveris`
+**Environment Variables** (already set in Dockerfile):
+- `AUDIVERIS_BIN=/usr/bin/audiveris`
 - `MUSESCORE_BIN=musescore3`
 
 **Cost:** ~$5-10/month (free tier available)
+
+**Build Time:** First deployment takes 10-15 minutes. Subsequent updates take 3-5 minutes.
 
 ---
 
@@ -140,11 +144,23 @@ Uses: /Applications/MuseScore 4.app/
 ### On Cloud Server (Production)
 ```
 cli.py detects: Linux
-Uses: /usr/local/bin/audiveris (Java wrapper)
+Uses: /usr/bin/audiveris (installed via .deb package)
 Uses: musescore3 (apt-get package)
 ```
 
 **Same code, different binaries!**
+
+### Audiveris Installation Method
+The Dockerfile uses the official Audiveris .deb package for Ubuntu 22.04:
+```dockerfile
+RUN wget https://github.com/Audiveris/audiveris/releases/download/5.7.1/Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
+    apt-get install -y ./Audiveris-5.7.1-ubuntu22.04-x86_64.deb
+```
+
+This is more reliable than manual JAR extraction because:
+- Handles all dependencies automatically
+- Installs to standard system paths
+- Works consistently across deployments
 
 ---
 
@@ -183,16 +199,21 @@ curl -X POST "$API_URL/api/convert-to-pdf" \
 
 ### "Audiveris not found"
 
-Check logs to see if Audiveris wrapper was created:
+Check logs to see if Audiveris .deb package was installed:
 ```bash
 # Railway/Render logs will show
 docker logs <container-id>
 ```
 
-Verify in Dockerfile:
+The Dockerfile includes a verification step:
 ```dockerfile
-RUN audiveris --help
+RUN audiveris -help || echo "Audiveris installed"
 ```
+
+If installation fails, common causes:
+- Download URL changed (check https://github.com/Audiveris/audiveris/releases)
+- Network issues during build
+- Incompatible Ubuntu version
 
 ### "MuseScore not found"
 
@@ -220,17 +241,21 @@ PDF conversion can take time. Optimize:
 
 ## Environment Variables
 
-Set these in your hosting platform:
+These are already set in the Dockerfile and don't need to be configured in Railway/Render:
 
 ```bash
-# Optional: Override binary paths
-AUDIVERIS_BIN=/usr/local/bin/audiveris
+# Binary paths (set in Dockerfile)
+AUDIVERIS_BIN=/usr/bin/audiveris
 MUSESCORE_BIN=musescore3
-
-# Optional: Python settings
 PYTHONUNBUFFERED=1
+```
 
-# Optional: Uvicorn workers (for high traffic)
+**Optional overrides** (only if you need to customize):
+```bash
+# Override binary paths (not recommended unless necessary)
+AUDIVERIS_BIN=/custom/path/to/audiveris
+
+# Uvicorn workers (for high traffic)
 WEB_CONCURRENCY=4
 ```
 

@@ -144,32 +144,46 @@ transpose.py (MusicXML transposition)
 MuseScore (MusicXML → PDF)
 ```
 
-### API Endpoints (Planned)
+### API Endpoints (✅ IMPLEMENTED)
+
+The FastAPI backend is located in `/api/main.py` and implements:
 
 ```
 POST /api/upload-pdf
-    - Accept PDF file upload
-    - Run Audiveris conversion
-    - Return MusicXML file + metadata
+    - Accepts PDF file upload
+    - Runs Audiveris conversion
+    - Returns session_id + metadata (key, time, part)
 
 POST /api/transpose
-    - Accept MusicXML file + target key
-    - Run transposition logic
-    - Return transposed MusicXML
+    - Accepts session_id + target_key
+    - Runs transposition logic
+    - Returns success confirmation
 
 POST /api/convert-to-pdf
-    - Accept MusicXML file
-    - Run MuseScore conversion
-    - Return rendered PDF
+    - Accepts session_id
+    - Runs MuseScore conversion
+    - Returns rendered PDF file
+
+GET /api/keys
+    - Returns list of all available keys for dropdown
+
+GET /api/health
+    - Returns {"status": "ok"} for health checks
 ```
+
+**Session Management:**
+- UUID-based sessions for multi-step workflow
+- Temporary file storage in system temp directory
+- Sessions expire after 1 hour (cleanup recommended for production)
 
 ### Development Phases
 
-**Phase 1: FastAPI Backend**
-- Convert existing Python functions to REST API endpoints
-- Add file upload/download handling
-- Implement session/file storage
-- Deploy to cloud hosting
+**Phase 1: FastAPI Backend** ✅ COMPLETE
+- ✅ Converted existing Python functions to REST API endpoints
+- ✅ Added file upload/download handling
+- ✅ Implemented session/file storage
+- ✅ Created Dockerfile for cloud deployment
+- ✅ Deployed to Railway (https://github.com/HariKoor/OMR_API)
 
 **Phase 2: Flutter App**
 - Create Flutter project with multi-platform support
@@ -194,6 +208,87 @@ POST /api/convert-to-pdf
 - Flutter requires Xcode (iOS) and Android Studio (Android emulator) installed
 - Code in Dart/Flutter only - no separate Xcode/Android coding needed
 - Single codebase generates apps for all 6 platforms
+
+## Deployment
+
+### Cloud Hosting Setup
+
+The API is deployed to **Railway** (https://railway.app) with automatic deployments from GitHub.
+
+**Repository:** https://github.com/HariKoor/OMR_API
+
+**Deployment Pipeline:**
+1. Code changes pushed to GitHub
+2. Railway detects changes automatically
+3. Builds Docker container from Dockerfile
+4. Deploys to production (10-15 minutes first time, 3-5 minutes for updates)
+
+### Docker Configuration
+
+The Dockerfile (`/Dockerfile`) handles cross-platform compatibility:
+
+**Base Image:** Ubuntu 22.04
+
+**Installed Software:**
+- Python 3 + pip
+- Java Runtime (for Audiveris)
+- Audiveris 5.7.1 (via official .deb package)
+- MuseScore 3 (via apt-get)
+- FastAPI dependencies (from api/requirements.txt)
+
+**Key Installation Details:**
+- Audiveris is installed using the official Ubuntu 22.04 .deb package
+- Download URL: `https://github.com/Audiveris/audiveris/releases/download/5.7.1/Audiveris-5.7.1-ubuntu22.04-x86_64.deb`
+- Binary location: `/usr/bin/audiveris`
+- This method is more reliable than manual JAR extraction
+
+**Environment Variables:**
+```bash
+AUDIVERIS_BIN=/usr/bin/audiveris
+MUSESCORE_BIN=musescore3
+PYTHONUNBUFFERED=1
+```
+
+### Platform Detection
+
+The `cli.py` file auto-detects the operating system:
+
+```python
+import platform
+SYSTEM = platform.system()
+
+if SYSTEM == "Darwin":  # macOS (development)
+    AUDIVERIS_BIN = "/Applications/Audiveris.app/Contents/MacOS/Audiveris"
+    MUSESCORE_BIN = "/Applications/MuseScore 4.app/Contents/MacOS/mscore"
+elif SYSTEM == "Linux":  # Linux (production/cloud)
+    AUDIVERIS_BIN = "/usr/bin/audiveris"
+    MUSESCORE_BIN = "musescore3"
+```
+
+This allows the same code to work on both macOS (local development) and Linux (cloud production).
+
+### Deployment Lessons Learned
+
+**Initial Issues:**
+1. First attempt used non-existent .zip download URLs (5.3.1, 5.2) - both returned 404 errors
+2. Solution: Use official .deb package from latest release (5.7.1)
+3. The .deb package handles all dependencies and installs to standard system paths
+
+**Testing Deployment:**
+Before deploying, test Docker build locally:
+```bash
+docker build -t music-transposer-api .
+docker run -p 8000:8000 music-transposer-api
+curl http://localhost:8000/api/health
+```
+
+**Update Process:**
+```bash
+git add .
+git commit -m "Update message"
+git push
+# Railway auto-deploys in 3-5 minutes
+```
 
 ## Future Extension Points
 
