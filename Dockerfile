@@ -10,29 +10,28 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    default-jdk \
-    git \
+    openjdk-17-jre-headless \
     musescore3 \
     wget \
     curl \
-    gradle \
     xvfb \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Build Audiveris from source
+# Download and build Audiveris from source (using gradle wrapper)
 WORKDIR /opt
-RUN git clone --depth 1 --branch 5.3.1 https://github.com/Audiveris/audiveris.git && \
-    cd audiveris && \
-    gradle build -x test && \
-    cd /opt/audiveris/build/distributions && \
-    unzip Audiveris-*.zip && \
-    mv Audiveris-* /opt/audiveris-app && \
-    cd / && \
-    rm -rf /opt/audiveris
+RUN wget https://github.com/Audiveris/audiveris/archive/refs/tags/5.7.1.zip && \
+    unzip 5.7.1.zip && \
+    rm 5.7.1.zip && \
+    cd audiveris-5.7.1 && \
+    chmod +x gradlew && \
+    ./gradlew build -x test && \
+    cp build/libs/Audiveris-*.jar /opt/audiveris.jar && \
+    cd /opt && \
+    rm -rf audiveris-5.7.1
 
 # Create wrapper script for Audiveris
-RUN echo '#!/bin/bash\nexport DISPLAY=:99\nXvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &\n/opt/audiveris-app/bin/Audiveris "$@"' > /usr/local/bin/audiveris && \
+RUN echo '#!/bin/bash\nexport DISPLAY=:99\nXvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &\njava -Xmx4g -jar /opt/audiveris.jar "$@"' > /usr/local/bin/audiveris && \
     chmod +x /usr/local/bin/audiveris
 
 # Verify installations
