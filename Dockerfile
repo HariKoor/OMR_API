@@ -6,7 +6,7 @@ FROM ubuntu:22.04
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies
+# Install system dependencies including GUI libraries for Audiveris
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -15,15 +15,22 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     curl \
+    gdebi-core \
+    libgtk-3-0 \
+    libglib2.0-0 \
+    libx11-6 \
+    libxext6 \
+    libxrender1 \
+    libxtst6 \
+    libxi6 \
+    xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Audiveris using official .deb package
+# Install Audiveris using gdebi (handles dependencies automatically)
 WORKDIR /tmp
 RUN wget https://github.com/Audiveris/audiveris/releases/download/5.7.1/Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
-    apt-get update && \
-    apt-get install -y ./Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
-    rm Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
-    rm -rf /var/lib/apt/lists/*
+    gdebi -n Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
+    rm Audiveris-5.7.1-ubuntu22.04-x86_64.deb
 
 # Verify installations
 RUN audiveris -help || echo "Audiveris installed"
