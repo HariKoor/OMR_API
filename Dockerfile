@@ -26,14 +26,14 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Audiveris using gdebi (handles dependencies automatically)
+# Install Audiveris using apt install (per official docs)
 WORKDIR /tmp
 RUN wget https://github.com/Audiveris/audiveris/releases/download/5.7.1/Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
-    gdebi -n Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
+    apt install -y ./Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
     rm Audiveris-5.7.1-ubuntu22.04-x86_64.deb
 
-# Verify installations
-RUN audiveris -help || echo "Audiveris installed"
+# Verify installations (Audiveris is at /opt/audiveris/bin/Audiveris)
+RUN /opt/audiveris/bin/Audiveris -help || echo "Audiveris installed"
 RUN musescore3 --version || echo "MuseScore installed"
 
 # Set working directory
@@ -47,8 +47,8 @@ RUN pip3 install --no-cache-dir -r api/requirements.txt
 COPY . .
 
 # Set environment variables for binary paths
-# After .deb installation, Audiveris is typically at /usr/bin/audiveris
-ENV AUDIVERIS_BIN=/usr/bin/audiveris
+# After .deb installation, Audiveris is at /opt/audiveris/bin/Audiveris (per official docs)
+ENV AUDIVERIS_BIN=/opt/audiveris/bin/Audiveris
 ENV MUSESCORE_BIN=musescore3
 ENV PYTHONUNBUFFERED=1
 
