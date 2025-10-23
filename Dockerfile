@@ -6,34 +6,36 @@ FROM ubuntu:22.04
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies including GUI libraries for Audiveris
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    default-jre \
+    default-jdk \
+    git \
     musescore3 \
     wget \
-    unzip \
     curl \
-    gdebi-core \
-    libgtk-3-0 \
-    libglib2.0-0 \
-    libx11-6 \
-    libxext6 \
-    libxrender1 \
-    libxtst6 \
-    libxi6 \
+    gradle \
     xvfb \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Audiveris using apt install (per official docs)
-WORKDIR /tmp
-RUN wget https://github.com/Audiveris/audiveris/releases/download/5.7.1/Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
-    apt install -y ./Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
-    rm Audiveris-5.7.1-ubuntu22.04-x86_64.deb
+# Build Audiveris from source
+WORKDIR /opt
+RUN git clone --depth 1 --branch 5.3.1 https://github.com/Audiveris/audiveris.git && \
+    cd audiveris && \
+    gradle build -x test && \
+    cd /opt/audiveris/build/distributions && \
+    unzip Audiveris-*.zip && \
+    mv Audiveris-* /opt/audiveris-app && \
+    cd / && \
+    rm -rf /opt/audiveris
 
-# Verify installations (Audiveris is at /opt/audiveris/bin/Audiveris)
-RUN /opt/audiveris/bin/Audiveris -help || echo "Audiveris installed"
+# Create wrapper script for Audiveris
+RUN echo '#!/bin/bash\nexport DISPLAY=:99\nXvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &\n/opt/audiveris-app/bin/Audiveris "$@"' > /usr/local/bin/audiveris && \
+    chmod +x /usr/local/bin/audiveris
+
+# Verify installations
 RUN musescore3 --version || echo "MuseScore installed"
 
 # Set working directory
@@ -47,8 +49,8 @@ RUN pip3 install --no-cache-dir -r api/requirements.txt
 COPY . .
 
 # Set environment variables for binary paths
-# After .deb installation, Audiveris is at /opt/audiveris/bin/Audiveris (per official docs)
-ENV AUDIVERIS_BIN=/opt/audiveris/bin/Audiveris
+# Audiveris wrapper script at /usr/local/bin/audiveris
+ENV AUDIVERIS_BIN=/usr/local/bin/audiveris
 ENV MUSESCORE_BIN=musescore3
 ENV PYTHONUNBUFFERED=1
 
