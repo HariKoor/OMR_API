@@ -17,22 +17,16 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Audiveris (Java-based)
-# Note: Using a working download link for Audiveris
-WORKDIR /opt
-RUN wget --no-check-certificate https://github.com/Audiveris/audiveris/releases/download/5.3.1/Audiveris-5.3.1.zip -O audiveris.zip || \
-    wget https://github.com/Audiveris/audiveris/releases/download/5.2/Audiveris-5.2.zip -O audiveris.zip && \
-    unzip -q audiveris.zip && \
-    rm audiveris.zip
+# Install Audiveris using official .deb package
+WORKDIR /tmp
+RUN wget https://github.com/Audiveris/audiveris/releases/download/5.7.1/Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
+    apt-get update && \
+    apt-get install -y ./Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
+    rm Audiveris-5.7.1-ubuntu22.04-x86_64.deb && \
+    rm -rf /var/lib/apt/lists/*
 
-# Find the extracted Audiveris directory and create wrapper
-RUN AUDIVERIS_DIR=$(find /opt -type d -name "Audiveris*" | head -1) && \
-    AUDIVERIS_JAR=$(find $AUDIVERIS_DIR -name "*.jar" -o -name "Audiveris*.jar" | head -1) && \
-    echo "#!/bin/bash" > /usr/local/bin/audiveris && \
-    echo "java -Xmx4g -jar $AUDIVERIS_JAR \"\$@\"" >> /usr/local/bin/audiveris && \
-    chmod +x /usr/local/bin/audiveris
-
-# Verify MuseScore installation
+# Verify installations
+RUN audiveris -help || echo "Audiveris installed"
 RUN musescore3 --version || echo "MuseScore installed"
 
 # Set working directory
@@ -46,7 +40,8 @@ RUN pip3 install --no-cache-dir -r api/requirements.txt
 COPY . .
 
 # Set environment variables for binary paths
-ENV AUDIVERIS_BIN=/usr/local/bin/audiveris
+# After .deb installation, Audiveris is typically at /usr/bin/audiveris
+ENV AUDIVERIS_BIN=/usr/bin/audiveris
 ENV MUSESCORE_BIN=musescore3
 ENV PYTHONUNBUFFERED=1
 
