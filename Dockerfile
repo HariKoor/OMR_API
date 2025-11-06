@@ -6,7 +6,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     openjdk-17-jre-headless git curl unzip ca-certificates \
-    tesseract-ocr tesseract-ocr-eng verovio \
+    tesseract-ocr tesseract-ocr-eng \
+    musescore3 \
     python3 python3-pip \
     fonts-dejavu-core fonts-noto-core \
  && rm -rf /var/lib/apt/lists/*
@@ -43,7 +44,6 @@ COPY . .
 
 # Set environment variables for binary paths
 ENV AUDIVERIS_BIN=/audiveris-extract/bin/audiveris
-ENV VEROVIO_BIN=verovio
 ENV MUSESCORE_BIN=musescore3
 ENV PYTHONUNBUFFERED=1
 ENV QT_QPA_PLATFORM=offscreen
