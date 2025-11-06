@@ -1,69 +1,98 @@
-# Dockerfile for Music Transposer API
-# Includes Audiveris and MuseScore for Linux deployment
-# Based on working Audiveris Dockerfile example
+# # Dockerfile for Music Transposer API
+# # Includes Audiveris and MuseScore for Linux deployment
+# # Based on working Audiveris Dockerfile example
 
-FROM ubuntu:22.04
+# FROM ubuntu:22.04
 
-# Prevent interactive prompts during package installation
-ENV DEBIAN_FRONTEND=noninteractive
+# # Prevent interactive prompts during package installation
+# ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies including OpenJDK 17
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    curl \
-    wget \
-    git \
-    openjdk-17-jdk \
-    musescore3 \
-    tesseract-ocr \
-    tesseract-ocr-eng \
-    && rm -rf /var/lib/apt/lists/*
+# # Install system dependencies including OpenJDK 17
+# RUN apt-get update && apt-get install -y \
+#     python3 \
+#     python3-pip \
+#     curl \
+#     wget \
+#     git \
+#     openjdk-17-jdk \
+#     musescore3 \
+#     tesseract-ocr \
+#     tesseract-ocr-eng \
+#     && rm -rf /var/lib/apt/lists/*
 
-# Set Java environment variables
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-ENV PATH=$PATH:$JAVA_HOME/bin
+# # Set Java environment variables
+# ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+# ENV PATH=$PATH:$JAVA_HOME/bin
 
-# Clone and build Audiveris from source (using development branch like working example)
-WORKDIR /opt
-RUN git clone --depth 1 --branch development https://github.com/Audiveris/audiveris.git
+# # Clone and build Audiveris from source (using development branch like working example)
+# WORKDIR /opt
+# RUN git clone --depth 1 --branch development https://github.com/Audiveris/audiveris.git
 
-WORKDIR /opt/audiveris
-RUN chmod +x gradlew && ./gradlew distTar --no-daemon --console=plain
+# WORKDIR /opt/audiveris
+# RUN chmod +x gradlew && ./gradlew distTar --no-daemon --console=plain
 
-# Extract the distribution
-RUN mkdir -p /audiveris-extract && \
-    tar -xf /opt/audiveris/build/distributions/Audiveris*.tar -C /audiveris-extract --strip-components=1
+# # Extract the distribution
+# RUN mkdir -p /audiveris-extract && \
+#     tar -xf /opt/audiveris/build/distributions/Audiveris*.tar -C /audiveris-extract --strip-components=1
 
-# Clean up build directory
-RUN rm -rf /opt/audiveris
+# # Clean up build directory
+# RUN rm -rf /opt/audiveris
 
-# Verify installations
-RUN /audiveris-extract/bin/Audiveris -help || echo "Audiveris installed"
-RUN musescore3 --version || echo "MuseScore installed"
+# # Verify installations
+# RUN /audiveris-extract/bin/Audiveris -help || echo "Audiveris installed"
+# RUN musescore3 --version || echo "MuseScore installed"
 
-# Set working directory
-WORKDIR /app
+# # Set working directory
+# WORKDIR /app
 
-# Copy requirements and install Python dependencies
-COPY api/requirements.txt ./api/
-RUN pip3 install --no-cache-dir -r api/requirements.txt
+# # Copy requirements and install Python dependencies
+# COPY api/requirements.txt ./api/
+# RUN pip3 install --no-cache-dir -r api/requirements.txt
 
-# Copy application code
-COPY . .
+# # Copy application code
+# COPY . .
 
-# Set environment variables for binary paths
-# Audiveris binary from extracted distribution
-ENV AUDIVERIS_BIN=/audiveris-extract/bin/Audiveris
-ENV MUSESCORE_BIN=musescore3
-ENV PYTHONUNBUFFERED=1
+# # Set environment variables for binary paths
+# # Audiveris binary from extracted distribution
+# ENV AUDIVERIS_BIN=/audiveris-extract/bin/Audiveris
+# ENV MUSESCORE_BIN=musescore3
+# ENV PYTHONUNBUFFERED=1
 
-# Expose port
-EXPOSE 8000
+# # Expose port
+# EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || exit 1
+# # Health check
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+#     CMD curl -f http://localhost:8000/api/health || exit 1
 
-# Run the application
-CMD ["python3", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# # Run the application
+# CMD ["python3", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+FROM debian:stretch-slim
+
+RUN apt-get update && apt-get install -y  \
+        curl \
+        wget \
+        git \
+        tesseract-ocr \
+        tesseract-ocr-eng \
+        tesseract-ocr-deu \
+        tesseract-ocr-fra
+
+RUN wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb \
+        && apt install -y ./jdk-17_linux-x64_bin.deb \
+        && rm ./jdk-17_linux-x64_bin.deb
+
+ENV JAVA_HOME=/usr/lib/jvm/jdk-17/ 
+ENV PATH=$PATH:$JAVA_HOME/bin 
+
+RUN  git clone --branch development https://github.com/Audiveris/audiveris.git && \
+        cd audiveris && \
+        ./gradlew build && \
+        mkdir /audiveris-extract && \
+        tar -xvf /audiveris/build/distributions/Audiveris*.tar -C /audiveris-extract && \
+        mv /audiveris-extract/Audiveris*/* /audiveris-extract/ &&\
+        rm -r /audiveris
+
+CMD ["sh", "-c", "/audiveris-extract/bin/Audiveris -batch -export -output /output/ $(ls /input/*.jpg /input/*.png /input/*.pdf)"]
