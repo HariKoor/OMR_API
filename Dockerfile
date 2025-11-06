@@ -24,12 +24,12 @@ RUN apt-get update && apt-get install -y \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH=$PATH:$JAVA_HOME/bin
 
-# Clone and build Audiveris from source
+# Clone and build Audiveris from source (using development branch like working example)
 WORKDIR /opt
-RUN git clone --branch 5.7.1 https://github.com/Audiveris/audiveris.git
+RUN git clone --depth 1 --branch development https://github.com/Audiveris/audiveris.git
 
 WORKDIR /opt/audiveris
-RUN ./gradlew build -x test
+RUN chmod +x gradlew && ./gradlew build --no-daemon --console=plain
 
 # Extract the distribution
 RUN mkdir -p /audiveris-extract && \
