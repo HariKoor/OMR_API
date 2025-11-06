@@ -111,26 +111,57 @@ RUN /audiveris-extract/bin/audiveris -help
 # # Quick check (will print version and exit 0)
 # RUN /usr/local/bin/mscore -v || true
 
-# Binaries for the app
-ENV AUDIVERIS_BIN=/audiveris-extract/bin/audiveris
-ENV VEROVIO_BIN=verovio
-# If you enabled MuseScore wrapper above, you may also set:
-# ENV MUSESCORE_BIN=/usr/local/bin/mscore
+# # Binaries for the app
+# ENV AUDIVERIS_BIN=/audiveris-extract/bin/audiveris
+# ENV VEROVIO_BIN=verovio
+# # If you enabled MuseScore wrapper above, you may also set:
+# # ENV MUSESCORE_BIN=/usr/local/bin/mscore
 
-# FastAPI app
-WORKDIR /app
-COPY api/requirements.txt ./api/
-RUN pip3 install --no-cache-dir -r api/requirements.txt
+# # FastAPI app
+# WORKDIR /app
+# COPY api/requirements.txt ./api/
+# RUN pip3 install --no-cache-dir -r api/requirements.txt
 
-COPY . .
+# COPY . .
 
-# Useful defaults for headless rendering
-ENV QT_QPA_PLATFORM=offscreen
-ENV PYTHONUNBUFFERED=1
+# # Useful defaults for headless rendering
+# ENV QT_QPA_PLATFORM=offscreen
+# ENV PYTHONUNBUFFERED=1
 
-EXPOSE 8000
+# EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -fsS http://localhost:8000/api/health || exit 1
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+#   CMD curl -fsS http://localhost:8000/api/health || exit 1
 
-CMD ["python3", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD ["python3", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jre-headless git curl unzip ca-certificates \
+    tesseract-ocr tesseract-ocr-eng verovio \
+    python3 python3-pip \
+    fonts-dejavu-core fonts-noto-core \
+ && rm -rf /var/lib/apt/lists/*
+
+# --- Audiveris build ---
+WORKDIR /opt
+# pin or keep development; depth=1 avoids huge checkout
+ARG AUDIVERIS_REF=development
+RUN git clone --depth 1 --branch "$AUDIVERIS_REF" https://github.com/Audiveris/audiveris.git
+
+WORKDIR /opt/audiveris
+# distTar is what creates build/distributions/Audiveris-*.tar
+RUN chmod +x gradlew \
+ && ./gradlew --no-daemon --console=plain distTar
+
+# extract the distribution (note: lowercase 'audiveris' script)
+RUN mkdir -p /audiveris-extract \
+ && tar -xf build/distributions/Audiveris*.tar -C /audiveris-extract --strip-components=1
+
+RUN /audiveris-extract/bin/audiveris -help
+
+# (your app bits below…)
+
