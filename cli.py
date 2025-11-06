@@ -29,7 +29,7 @@ if SYSTEM == "Darwin":  # macOS
 elif SYSTEM == "Linux":  # Linux (for cloud deployment)
     AUDIVERIS_BIN = os.environ.get(
         "AUDIVERIS_BIN",
-        "/usr/local/bin/audiveris"  # Built from source with wrapper
+        "/audiveris-extract/bin/Audiveris"  # Built from source
     )
     MUSESCORE_BIN = os.environ.get(
         "MUSESCORE_BIN",
