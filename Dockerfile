@@ -7,26 +7,21 @@ FROM ubuntu:22.04
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies
+# Install system dependencies including OpenJDK 17
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     curl \
     wget \
     git \
+    openjdk-17-jdk \
     musescore3 \
     tesseract-ocr \
     tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Oracle JDK 17 (same as the working example)
-RUN wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb && \
-    apt-get update && \
-    apt-get install -y ./jdk-17_linux-x64_bin.deb && \
-    rm ./jdk-17_linux-x64_bin.deb && \
-    rm -rf /var/lib/apt/lists/*
-
-ENV JAVA_HOME=/usr/lib/jvm/jdk-17/
+# Set Java environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH=$PATH:$JAVA_HOME/bin
 
 # Build Audiveris from source using the working approach
