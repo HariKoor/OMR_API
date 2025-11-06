@@ -29,7 +29,7 @@ WORKDIR /opt
 RUN git clone --depth 1 --branch development https://github.com/Audiveris/audiveris.git
 
 WORKDIR /opt/audiveris
-RUN chmod +x gradlew && ./gradlew build --no-daemon --console=plain
+RUN chmod +x gradlew && ./gradlew distTar --no-daemon --console=plain
 
 # Extract the distribution
 RUN mkdir -p /audiveris-extract && \
